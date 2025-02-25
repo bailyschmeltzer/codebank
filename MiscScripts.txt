@@ -1,0 +1,536 @@
+# uninstall mcafee
+
+```powershell
+$DebloatFolder = 'C:\MedicusIt' ; $URL = 'https://github.com/andrew-s-taylor/public/raw/main/De-Bloat/mcafeeclean.zip' ; $destination = join-path $DebloatFolder  mcAfeeUninstall.zip ; Invoke-WebRequest -Uri $URL -OutFile $destination -Method Get; Expand-Archive $destination -DestinationPath $DebloatFolder -Force ; start-process (Join-Path $debloatFolder Mccleanup.exe) -ArgumentList "-p StopServices,MFSY,PEF,MXD,CSP,Sustainability,MOCP,MFP,APPSTATS,Auth,EMproxy,FWdiver,HW,MAS,MAT,MBK,MCPR,McProxy,McSvcHost,VUL,MHN,MNA,MOBK,MPFP,MPFPCU,MPS,SHRED,MPSCU,MQC,MQCCU,MSAD,MSHR,MSK,MSKCU,MWL,NMC,RedirSvc,VS,REMEDIATION,MSC,YAP,TRUEKEY,LAM,PCB,Symlink,SafeConnect,MGS,WMIRemover,RESIDUE -v -s" ; 
+```
+
+# NOC Maintenance Tasks
+```powershell
+#Get computers not logged in in past 90 days 
+get-adcomputer -filter * -properties LastLogonDate | ? {$_.LastLogonDate -lt (get-date).adddays(-90) -and $_.Enabled -eq $true}  | sort-object -property LastLogonDate | ft SamAccountname,LastLogonDate,*
+#disable computers not logged in in past 90 days
+get-adcomputer -filter * -properties LastLogonDate | ? {$_.LastLogonDate -lt (get-date).adddays(-90)}  | sort-object -property LastLogonDate | SEt-ADCOmputer -enabled $False
+
+#Get users not logged in in past 90 days 
+
+get-aduser -filter * -properties LastLogonDate | ? {$_.LastLogonDate -lt (get-date).adddays(-90) -and $_.Enabled -eq $true}  | sort-object -property LastLogonDate | ft SamAccountname,LastLogonDate,*
+
+#disable users not logged in in past 90 days
+
+get-aduser -filter * -properties LastLogonDate | ? {$_.LastLogonDate -lt (get-date).adddays(-90) -and $_.Enabled -eq $true}  | sort-object -property LastLogonDate | set-aduser -enabled $false -pas
+
+get-aduser -filter * -properties LastLogonDate | ? {$_.LastLogonDate -lt (get-date).adddays(-90) -and $_.Enabled -eq $true}  | sort-object -property LastLogonDate | OGV -Pass| set-aduser -enabled $false
+
+
+<#
+. \medicusit\join-object.ps1
+$csv = get-adcomputer -filter * -properties LastLogonDate | ? {$_.LastLogonDate -lt (get-date).adddays(-90) -and $_.Enabled -eq $true}  | sort-object -property LastLogonDate 
+$datto = import-csv C:\MedicusIT\foot-devices.csv
+$joined = join-object -Right $datto -Left $csv -RightJoinProperty hostname -LeftJoinProperty  name -RightProperties Hostname,'Last Seen' -LeftProperties DistinguishedName,LastLogonDate 
+
+$deadMachines = $joined | ? {
+                $_.'Last Seen' -eq $null -or
+                [datetime]$_.'Last Seen' -lt (get-date).adddays(-90) 
+            
+}
+
+
+
+$deadMachines 
+break;
+$deadMachines | Set-AdComputer -enabled $false
+$deadMachines | out-string|set-clipboard
+#>
+
+```
+
+# Ad Synced User - ENable Online Archive
+```powershell
+## MAY NOT BE NECESSARY? Try
+connect-exchangeonline # install-module exchangeonline if you don't have it installed already
+
+ get-mailbox |ogv -PassThru -Title "Pick User to enable archive"|Enable-Mailbox -Archive
+ <#
+$users = get-aduser -filter *
+$user = $users |ogv -passthru -title "Pick the user that needs the archive enabled"
+
+set-aduser -Identity $user -Add @{msExchArchiveName = "Online Archive - $($user.Userprincipalname)"}
+#>
+
+
+```
+
+# Generate name based on date
+```powershell
+$fileName = [string]::format("{0}-{1,2:D2}-{2,2:D2}T{3,2:D2}{4,2:D2}{5,2:D2}",$date.year,$date.Month,$date.Day,$date.Hour,$date.Minute,$date.Second);$fileName
+```
+
+# Force program not to use UAC
+```bat
+set __COMPAT_LAYER=RUNASINVOKER
+```
+
+# Exclude "Shared Mailboxes" from _All Users_ distribution Groups
+```powershell
+# Example is for Premier Pain LLC; Mostly should carry over; review existing filter first
+$DynamicDistributionGroup = Get-DynamicDistributionGroup | ogv -passthru
+
+$DynamicDistributionGroup.RecipientFilter
+<# EXAMPLE OUTPUT
+((RecipientType -eq 'UserMailbox') -and (-not(Name -like 'SystemMailbox{*')) -and (-not(Name -like 'CAS_{*')) -and (-not(RecipientTypeDetailsValue -eq 'MailboxPlan')) -and (-not(RecipientTypeDetailsValue -eq 'DiscoveryMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'PublicFolderMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'ArbitrationMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'AuditLogMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'AuxAuditLogMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'SupervisoryReviewPolicyMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'GuestMailUser')))
+#>
+
+Set-DynamicDistributionGroup -Identity $DynamicDistributionGroup -RecipientFilter "((RecipientType -eq 'UserMailbox') -and (-not(Name -like 'SystemMailbox{*')) -and (-not(Name -like 'CAS_{*')) -and (-not(RecipientTypeDetailsValue -eq 'MailboxPlan')) -and (-not(RecipientTypeDetailsValue -eq 'DiscoveryMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'PublicFolderMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'ArbitrationMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'AuditLogMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'AuxAuditLogMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'SupervisoryReviewPolicyMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'GuestMailUser'))) -and (-not(RecipientTypeDetailsValue -eq 'SharedMailbox'))"
+```
+
+```powershell
+#Disconnect  a single user from AD Sync (after it is out of the sync group obviously or its going to reconnect it)
+# Note the Quotes around "$NULL" CRITICAL! that or [string]::Empty might work. $null alone does not work. 
+$userprincipalName = Read-host "User Principal Name"
+get-msoluser -UserPrincipalName $userprincipalName |Set-MsolUser -ImmutableId "$Null"
+```
+
+```powershell
+   $mailbox = Get-Mailbox |ogv -pas 
+   Get-InboxRule -Mailbox $mailbox.id
+   $trace = Get-MessageTrace -StartDate (get-date).adddays(-4) -RecipientAddress $mailbox.WindowsEmailAddress -EndDate (get-date)
+    
+  $mailbox|Get-MailboxJunkEmailConfiguration
+```
+
+
+```bat
+Certutil.exe –p Password –exportpfx 510da4c500000000001b C:\ExportedKeys.pfx
+```
+
+```bash 
+# combine cert and pfx
+OpenSSL pkcs12 –export –in certfile.cer –inkey certfile.key –out certfile.pfx
+```
+
+```powershell
+#convert plain text to secure string
+$password = ConvertTo-SecureString 'MySecretPassword' -AsPlainText -Force
+$credential = New-Object System.Management.Automation.PSCredential ('root', $password)
+
+```
+
+```bat
+REM Change Product Key
+REM Windows 10/11 HOME  FQ6DH-NX2V9-RFMVD-49FYC-2DKQV 
+                     
+Changepk.exe /ProductKey FQ6DH-NX2V9-RFMVD-49FYC-2DKQV
+REM Windows 10/11 PRO  W4BK4-NVKD9-9T6G2-3BX74-K4R9G 
+
+Changepk.exe /ProductKey W4BK4-NVKD9-9T6G2-3BX74-K4R9G
+
+REM Remove current product key
+slmgr.vbs /upk
+REM Clear key from registory
+slmgr.vbs /cpky
+REM Clear any Key Management Servers
+slmgr.vbs /ckms
+REM Start License Manager
+sc start LicenseManager
+REM Install Professional Key
+changepk.exe /productkey W4BK4-NVKD9-9T6G2-3BX74-K4R9G
+REM Force Reboot
+shutdown -r -t 30 -f 
+
+
+```
+
+# change default user / computer OU
+```bat
+REM Computers
+redircmp "OU=Clients,OU=Production,DC=DOMAIN,DC=LOCAL"
+REM USERS 
+redirusr "OU=Users,OU=Production,DC=DOMAIN,DC=LOCAL"
+
+```
+
+# Save store change credentials on windows credential manager
+```bat
+cmdkey /list
+cmdkey /add /target: /user:username /pass:password
+cmdkey /delete:pmrc.lcl
+```
+
+# Log entries past 7 days
+```powershell
+Get-WinEvent -ListLog * -EA silentlycontinue |?{$_.LogName -match 'Terminal' -or $_.Logname -match 'Remote' -AND $_.lastwritetime -gt [datetime]::Now.AddDays(-7)}|%{get-winevent -logname $_.logname -maxevents 50}
+```
+
+# Repair Computer Account 
+```powershell
+$Domain = Read-Host "Enter Netbios domain name"
+$admin = Read-Host "Enter Administrator User name"
+$PasswordText = Read-host "Enter the administrator Password"
+$password = ConvertTo-SecureString $PasswordText -AsPlainText -Force
+$DomainController = Read-Host "Enter the Name of the Domain Controller"
+
+$credential = New-Object System.Management.Automation.PSCredential ("$domain\$admin", $password)
+Test-ComputerSecureChannel -Repair -Server $DomainController -Credential $credential
+
+```
+
+```powershell
+$mailboxes = get-mailbox
+$UserWithRights = $mailboxes | ogv -pass -titl "User with the rights that we will remove from the mailbox"
+{
+$MailboxToOperate = $mailboxes | ogv -pass -title "Mailbox to Change Permissions on"
+
+Remove-MailboxPermission -identity $MailboxToOperate.Identity -accessRights FullAccess -User $userwithRights -confirm:$false
+Add-MailboxPermission -identity $MailboxToOperate.Identity -accessRights FullAccess -User $userwithRights -automapping $false
+}
+```
+
+# Get service on a bunch of machines ; set start auto ; turn on; get status
+```powershell
+$scriptBlock = [scriptblock]::Create({
+
+set-service -StartupType Automatic WSearch
+start-service WSearch
+get-service WSearch
+})
+
+$hosts = @('PMRCTS04','PMRCTS05','PMRCTS06','PMRCTS07')
+foreach ($computername in $hosts){
+Invoke-Command -ComputerName $computerName -AsJob -ScriptBlock $scriptBlock
+}
+sleep 5
+$profiles = Get-Job | Receive-Job
+$profiles 
+```
+
+# sleep until a certain time
+```powershell
+while ((Get-Date) -lt (get-date -Hour 20)){
+$span = ((get-date -Hour 20)).Subtract( (Get-Date) )
+sleep $span.TotalSeconds
+}
+```
+
+# Disable Firewall
+```powershell
+Get-NetFirewallProfile | %{Set-NetFirewallProfile -Enabled False -Name $_.Name}
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
+```
+
+# Prevent Windows 11 Upgrade
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate]  
+"TargetReleaseVersion"=dword:00000001
+"TargetReleaseVersionInfo"="21H1"
+"ProductVersion"="Windows 10"
+```
+
+# ICACLS Grant Recurive FULL CONTROL
+```bat
+icacls "<root folder>" /grant "GROUP NAME":F /t
+```
+
+# Add AZURE AD Member to Local Computer Group
+```bat
+net localgroup GROUPNAME USER@AZUREDOMAIN.TLD /add
+```
+
+
+# find group mismatch ; and resolve? (whatif)
+```powershell
+
+$group1 = get-adgroup -filter * |ogv -pass
+$group2 = get-adgroup -filter * |ogv -pass
+$group1members= Get-AdGroupMember -Identity $group1
+$group2members= Get-AdGroupMember -Identity $group2
+$group1NotinGroup2 = $group1members | ? {$_.name -notin $group2members.name}
+$group2NotinGroup1 = $group2members | ? {$_.name -notin $group1members.name}
+$group1NotinGroup2 | export-csv -Path C:\MedicusIT\group1notingroup2.csv
+$group2NotinGroup1 | export-csv -Path C:\MedicusIT\group2notingroup1.csv
+$group1NotinGroup2 | %{Add-ADGroupMember -Identity $group2 -Members $_.distinguishedname -whatif}
+$group2NotinGroup1 | %{Add-ADGroupMember -Identity $group1 -Members $_.distinguishedname -whatif}
+
+```
+
+# create scheduled job
+```powershell
+# Create a new task action
+$taskAction = New-ScheduledTaskAction `
+    -Execute 'powershell.exe' `
+    -Argument '-File C:\MedicusIT\RDSCollectionMonitoring2.ps1'
+$taskAction
+
+# Schedule Job 
+$taskTrigger = New-ScheduledTaskTrigger -Daily -At 3AM
+
+#Naming with A '\' in the path creates a subfolder
+$taskName = "MedicusIT\RDS Monitoring"
+
+# Describe the scheduled task.
+$description = "Monitor RDS Sessions Ticket #6456418"
+
+Register-ScheduledTask `
+    -TaskName $taskName `
+    -RunLevel [Microsoft.PowerShell.Cmdletization.GeneratedTypes.ScheduledTask.RunLevelEnum]::Limited `
+    -Action $taskAction `
+    -Trigger $taskTrigger `
+    -Description $description 
+#   Commented out; untested; Path comes from TaskName? 
+#    -TaskPath "\MedicusIT\"
+
+# set to run every 30 minutes
+$TaskToModify = Get-ScheduledTask -TaskName "RDS Monitoring" -TaskPath '\MedicusIT\'
+$TaskToModify.Triggers[0].Repetition.Duration = "P1D" 
+$TaskToModify.Triggers[0].Repetition.Interval = "PT30M" 
+$TaskToModify |  Set-ScheduledTask -User "NT AUTHORITY\SYSTEM" 
+```
+
+# monitor RDS session collection for connections
+checks the actual logged on count
+checks the reported logged on count from the rds broker
+needs to be run on the broker
+broker needs to have local admin access to the session hosts (or needs to be run as a user that does)
+```powershell
+$users = Get-RDUserSession
+$groupedUsers = $users | Group-Object -Property HostServer
+$groupAverage = $groupedUsers | Measure-Object -Average -Property Count
+$groupedUsers | add-member -notepropertyname Average -NotePropertyValue $groupAverage.average -Force
+$groupedUsers | add-member -MemberType ScriptProperty -Name Variance -Value {[math]::abs(($this.count-$this.average))}
+$logEntry = $groupedUsers |Sort-Object -Property Name |ft count,name,average,variance | out-string
+$highCollectionVariance = $groupedUsers | ? {$_.variance -gt 5}
+
+if ($highCollectionVariance){
+   
+    Write-EventLog -LogName MedicusIT -Source DattoRMM -EntryType ([System.Diagnostics.EventLogEntryType]::Warning) -eventID 60 -Message `
+    "High Collection Variance Observed
+$logEntry"
+}
+
+$collections = Get-RDSessionCollection
+$varianceWarning = 0 
+foreach ($collection in $collections){
+    $sessionHosts = Get-RDSessionHost -CollectionName $collection.CollectionName
+    $localSessions = foreach ($server in $sessionHosts){
+        Invoke-Command -ScriptBlock {query user | Measure-Object} -ComputerName $server.SessionHost
+    }
+    $average = ($localSessions | Measure-Object -Property count -Average).Average
+    $localSessions | add-member -notepropertyname Average -NotePropertyValue $average -Force
+    $localSessions | add-member -MemberType ScriptProperty -Name Variance -Value {[math]::abs(($this.count-$this.average))}
+    $sessionStats = $localSessions |  ft count,PSComputerName,average,variance | out-string
+    $highVariance = $localSessions |?  {$_.variance -gt 5}
+    if ($highVariance){
+    $varianceWarning = 1
+    Write-EventLog -LogName MedicusIT -Source DattoRMM -EntryType ([System.Diagnostics.EventLogEntryType]::Warning) -eventID 61 -Message `
+    "High Logged In User Variance Observed 
+
+Server Query User Stats
+============
+$sessionStats
+
+Reported Session Collection Statistics
+============
+$logEntry
+"
+
+    }
+}
+
+
+
+```
+
+# C:\MedicusIT\restart-fax-service.ps1
+```powershell
+stop-service fax
+    Write-EventLog -LogName MedicusIT -Source DattoRMM -EntryType ([System.Diagnostics.EventLogEntryType]::Information) -eventID 1001 -Message "Stopped Service Fax"
+start-service fax
+    Write-EventLog -LogName MedicusIT -Source DattoRMM -EntryType ([System.Diagnostics.EventLogEntryType]::Information) -eventID 1002 -Message "Started Service Fax"
+
+```
+# monitor RDS login timeouts from session broker
+```powershell
+
+<#
+$events = Get-WinEvent -LogName Microsoft-Windows-TerminalServices-SessionBroker/Operational -MaxEvents 1500 
+$events = ($events | ?{$_.id -eq 819})
+#>
+$Date = (Get-Date).AddDays(-7)
+$events = Get-WinEvent -FilterHashtable @{ LogName='Microsoft-Windows-TerminalServices-SessionBroker/Operational'; StartTime=$Date; Id='819' }
+
+
+$events | add-member -MemberType ScriptProperty -Name Hour -Value {$this.timeCreated.hour} -Force
+$events | add-member -MemberType ScriptProperty -Name DayOfYear -Value {$this.timeCreated.DayOfYear} -Force
+
+$events | Group-Object -Property DayOfYear,Hour 
+
+```
+
+```powershell
+# Concatenate computer and domain
+$FQDN = $env:computername + '.' + $env:userdnsdomain;
+# Create New Self Signed Certificate for Computer FQDN
+$Cert = New-SelfSignedCertificate -DnsName $FQDN -NotAfter (get-Date).AddMonths(60) -CertStoreLocation cert:LocalMachine/My
+$thumb = $cert.Thumbprint
+
+# Copy Certificate to NTDS store
+# AD will autoreload when a certificate shows up here 
+$CertStoreLocation = 'HKLM:\Software\Microsoft\Cryptography\Services\NTDS\SystemCertificates\My\Certificates'
+if (!(Test-Path $CertStoreLocation)){New-Item $CertStoreLocation -Force;};
+Copy-Item -Path HKLM:\SOFTWARE\Microsoft\SystemCertificates\My\Certificates\$thumb -Destination $CertStoreLocation
+```
+
+# Get all Event Log errors in past day
+https://learn.microsoft.com/en-us/powershell/scripting/samples/creating-get-winevent-queries-with-filterhashtable?view=powershell-7.3
+| Key name     | Value data type | Accepts wildcard characters? |
+|--------------|-----------------|------------------------------|
+| LogName      | <String[]>      | Yes                          |
+| ProviderName | <String[]>      | Yes                          |
+| Path         | <String[]>      | No                           |
+| Keywords     | <Long[]>        | No                           |
+| ID           | <Int32[]>       | No                           |
+| Level        | <Int32[]>       | No                           |
+| StartTime    | <DateTime>      | No                           |
+| EndTime      | <DateTime>      | No                           |
+| UserID       | <SID>           | No                           |
+| Data         | <String[]>      | No                           |
+| <named-data> | <String[]>      | No                           |
+
+```powershell
+$EventLogs = Get-WinEvent -ListLog *
+$Yesterday = (Get-Date).AddDays(-1)
+$past24HoursofErrors = foreach ($eventLog in $EventLogs){
+Get-WinEvent -FilterHashtable @{ LogName=$EventLog.LogName; Level=2; StartTime=$Yesterday }
+
+}
+
+```
+
+# Get All Enabled Users In All Groups
+```powershell
+$enabledUsers = get-aduser -filter * | ? {$_.enabled -eq $true}
+get-adgroup -filter *  | %{$g= $_;  Get-ADGroupMember -Identity $_.DistinguishedName | add-member -NotePropertyName Group -NotePropertyValue $g.name -force 
+-PassThru}|? {$_.DistinguishedName -in $enabledUsers.DistinguishedName} | select Group,Name | export-csv -NoTypeInformation -Path C:\Reports\Users-Accounts.csv
+```
+
+# remove and readd firewall registry key
+- wipes all firewall information
+- sets back to default
+```powershell in admin powershell:
+Remove-Item "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\RestrictedServices\Configurable\System"
+New-Item "HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\RestrictedServices\Configurable\System"
+(New-Object -ComObject HNetCfg.FwPolicy2).RestoreLocalFirewallDefaults()
+
+```
+
+# installed software
+```powershell
+$InstalledSoftware = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
+$SoftwareInfo = foreach($obj in $InstalledSoftware){
+    New-Object -TypeName psobject -Property @{
+        DisplayName=$obj.GetValue('DisplayName')
+        DisplayVersion=$obj.GetValue('DisplayVersion')
+        Publisher=$obj.GetValue('Publisher')
+        UninstallString=$obj.GetValue('UninstallString')
+    }
+}
+$SoftwareInfo | ft DisplayName,DisplayVersion,Publisher
+
+    #write-host $obj.GetValue('DisplayName') -NoNewline; write-host " - " -NoNewline; write-host $obj.GetValue('DisplayVersion')}
+```
+```powershell
+PS C:\Windows\system32> $users = get-aduser -Filter * -Properties * | ? {$_.UserPrincipalName -eq 'sgilman@rehabmed.net'
+}
+PS C:\Windows\system32> $users | add-member -MemberType ScriptProperty -Name AzureId -Value {$hexstring = ($this.'mS-DS-
+ConsistencyGuid'| % ToString X2 ) -join ' '; $base64 = [system.convert]::ToBase64String([byte[]] (-split (($hexstring -r
+eplace " ", "") -replace '..', '0x$& '))); $base64} -Force
+PS C:\Windows\system32> $users | select UserPrincipalName,DisplayName,SamAccountName,AzureId|ft
+```
+
+
+# DU
+```powershell
+function du($dir=".") { 
+  get-childitem $dir |   %{$f=$_; gci -r $_.FullName | 
+    measure-object -property length -sum -ErrorAction SilentlyContinue |
+    select  @{Name="Name"; Expression={$f}}, 
+            @{Name="Sum (MB)"; 
+            Expression={"{0:N2}" -f ($_.sum / 1MB) }}, Sum } |
+  sort Sum -desc | 
+   Select -Property Name,"Sum (MB)", Sum 
+
+}
+```
+# mcirsoft troubleshooter uninstall 
+https://support.microsoft.com/en-us/topic/fix-problems-that-block-programs-from-being-installed-or-removed-cca7d1b6-65a9-3d98-426b-e9f927e1eb4d
+
+# Setup Printers A Records Westwood
+```powershell
+@(
+'WOA-Admin-Printer'
+'WOA-Billing-Printer'
+'WOA-Contact-Lens-Printer'
+'WOA-Doctor-Office-Printer'
+'WOA-Frontdesk-Printer'
+'WOA-Surgery-Scheduling-1-Printer'
+'WOA-Tech-Station-Printer'
+'WOA-Tech-Test-Printer'
+) -replace ' ','-' | %{ 
+
+Add-DnsServerResourceRecordA -Name "host23" -ZoneName "contoso.com" -AllowUpdateAny -IPv4Address "172.18.99.23" -TimeToLive 01:00:00
+
+}
+
+
+
+ %{write-output "cscript c:\Windows\System32\Printing_Admin_Scripts\en-US\prnport.vbs -a -r $_ -h $_"} |Set-Clipboard
+
+
+
+ import-csv -Path C:\MedicusIT\westwoodpritners.csv |  %{
+
+ write-output "Add-DnsServerResourceRecordA -Name '$($_.Port)' -ZoneName 'westwoodeye.local' -AllowUpdateAny -IPv4Address '$($_.NewIP)' -TimeToLive 01:00:00 -ComputerName westwoodsvr -CreatePtr"
+ } | Set-Clipboard
+ ```
+# convert AD consistency guid to Azure AD Anchor
+ ```powershell
+ C0 AE A8 EE 0F 65 3E 44 99 52 05 C7 4E 8F 7E A9
+
+$hexstring = "C0 AE A8 EE 0F 65 3E 44 99 52 05 C7 4E 8F 7E A9"     # <- set your own Hex string here
+$base64 = [system.convert]::ToBase64String([byte[]] (-split (($hexstring -replace " ", "") -replace '..', '0x$& ')))
+$base64 # wK6o7g9lPkSZUgXHTo9+qQ==
+
+
+
+
+$base64 = "eNlsPwOCzE+EB/uUzIY13g=="
+$hexstring = ([system.convert]::FromBase64String($base64) | % ToString X2) -join ' '
+$hexstring
+ 
+$ldapFilter = "(mS-DS-ConsistencyGUID=\" +  ($hexstring -replace " ", "\")  + ")"
+$ldapFilter
+ ```
+
+ # Test Multiple hosts status
+ ```powershell
+ $hosts = @(
+
+'pbx09.sip.sovms.com'
+'pbx10.sip.sovms.com'
+'pbx11.sip.sovms.com'
+'pbx12.sip.sovms.com'
+'pbx13.sip.sovms.com'
+'pbx14.sip.sovms.com'
+'pbx15.sip.sovms.com'
+
+)
+$ports = 80,443
+
+$res = foreach ($hostname in $hosts){
+foreach ($port in $ports){
+Test-NetConnection -ComputerName $hostname -Port $port
+}
+}
+$res |ft -AutoSize
+```
