@@ -15,6 +15,14 @@ if (-not $isAdmin) {
     return
 }
 
+powercfg /change standby-timeout-ac 0
+powercfg /change standby-timeout-dc 0
+powercfg /change monitor-timeout-ac 0
+powercfg /change monitor-timeout-dc 0
+powercfg /hange hibernate-timeout-ac 0
+powercfg /change hibernate-timeout-dc 0
+
+
 # Define registry settings for Google Chrome
 $settings = @(
     [PSCustomObject]@{ Path = "SOFTWARE\Policies\Google\Chrome"; Value = 4; Name = "RestoreOnStartup" },
