@@ -1,8 +1,8 @@
-net user Administrator Ft3J97sD3yYbnuoAZ8t7
+net user Administrator PASSWORD
 net user Administrator active:no
 WMIC USERACCOUNT WHERE Name='Administrator' SET PasswordExpires=FALSE
-net user MITlocal c0rsair$$D /add
-WMIC USERACCOUNT WHERE Name='MITLocal' SET PasswordExpires=FALSE
+net user USERNAME PASSWORD /add
+WMIC USERACCOUNT WHERE Name='USERNAME' SET PasswordExpires=FALSE
 net localgroup administrators MITLocal /add
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /T REG_DWORD /d 0 /f
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 0 /f 
