@@ -105,6 +105,72 @@ teamsbootstrapper -u
 Start-Process -FilePath $localPath -ArgumentList "-p" -Wait
 
 
+# Step 1: Define paths and URLs
+$odtUrl = "https://download.microsoft.com/download/1/7/6/176F2D4E-2D61-4365-8B2D-67D99B1A5788/OfficeDeploymentTool.exe"
+$odtPath = "C:\Temp\OfficeDeploymentTool.exe"
+$odtExtractPath = "C:\Temp\OfficeDeploymentTool"
+$configFile = "C:\Temp\configuration.xml"
+
+# Step 2: Download the Office Deployment Tool
+if (!(Test-Path $odtPath)) {
+    Write-Host "Downloading the Office Deployment Tool..."
+    Invoke-WebRequest -Uri $odtUrl -OutFile $odtPath
+    Write-Host "Office Deployment Tool downloaded successfully."
+} else {
+    Write-Host "Office Deployment Tool already downloaded."
+}
+
+# Step 3: Extract the Office Deployment Tool
+if (!(Test-Path $odtExtractPath)) {
+    Write-Host "Extracting the Office Deployment Tool..."
+    Start-Process -FilePath $odtPath -ArgumentList "/quiet /extract:$odtExtractPath" -Wait
+    Write-Host "Office Deployment Tool extracted successfully."
+} else {
+    Write-Host "Office Deployment Tool already extracted."
+}
+
+# Step 4: Create the Configuration XML File for Office 365 Installation
+$configXmlContent = @"
+<Configuration>
+  <Add SourcePath="https://officecdn.microsoft.com/pr/office2021/ProPlus2021Retail" OfficeClientEdition="64" Channel="MonthlyEnterprise">
+    <Product ID="O365BusinessRetail">
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <Display Level="Full" AcceptEULA="TRUE" />
+  <Property Name="ForceAppShutdown" Value="TRUE" />
+</Configuration>
+"@
+
+# Save the configuration file
+$configXmlContent | Out-File -FilePath $configFile -Force
+Write-Host "Configuration file created."
+
+# Step 5: Install Office 365 using the Office Deployment Tool
+Write-Host "Starting Office 365 installation..."
+Start-Process -FilePath "$odtExtractPath\setup.exe" -ArgumentList "/configure `"$configFile`"" -Wait
+
+Write-Host "Office 365 installation completed!"
+
+# Step 1: Define paths and URLs for Adobe Reader
+$readerUrl = "https://get.adobe.com/reader/download/?installer=Reader_DC_zh_CN&standalone=1" # You may need to update the URL for your specific version or language.
+$installerPath = "C:\Temp\AcrobatReaderInstaller.exe"
+
+# Step 2: Download the Adobe Acrobat Reader installer
+if (!(Test-Path $installerPath)) {
+    Write-Host "Downloading Adobe Acrobat Reader..."
+    Invoke-WebRequest -Uri $readerUrl -OutFile $installerPath
+    Write-Host "Adobe Acrobat Reader downloaded successfully."
+} else {
+    Write-Host "Adobe Acrobat Reader installer already downloaded."
+}
+
+# Step 3: Install Adobe Acrobat Reader silently
+Write-Host "Starting Adobe Acrobat Reader installation..."
+Start-Process -FilePath $installerPath -ArgumentList "/sAll /msi EULA_ACCEPT=YES" -Wait
+Write-Host "Adobe Acrobat Reader installation completed!"
+
+
 
 # Set Chrome as the default browser via registry 
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice" -Name "ProgId" -Value "ChromeHTML"
