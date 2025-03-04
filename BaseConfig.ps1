@@ -88,7 +88,7 @@ Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait  # In
 Write-Host "Dell Command Update installed successfully!"
 
 # Download Microsoft Teams if not already present
-$downloadUrl = "https://aka.ms/teamsinstaller"  # Teams installer URL
+$downloadUrl = "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"  # Teams installer URL
 $localPath = "C:\Temp\TeamsBootstrapper.exe"  # Path to save installer
 
 # Check if Teams installer exists, download if not
@@ -96,15 +96,15 @@ if(!(Test-Path $localPath)) {
     Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing  # Download Teams installer
 }
 
+# Install Teams using the bootstrapper
+Start-Process -FilePath $localPath -ArgumentList "-p" -Wait  # Install Teams silently
+
 # Remove any existing Teams installations
 teamsbootstrapper -x  # Uninstall existing Teams installations
 teamsbootstrapper -u  # Uninstall existing Teams installations
 
-# Install Teams using the bootstrapper
-Start-Process -FilePath $localPath -ArgumentList "-p" -Wait  # Install Teams silently
-
 # Download Office Deployment Tool if not already present
-$odtUrl = "https://go.microsoft.com/fwlink/p/?linkid=2112906"  # Office Deployment Tool URL
+$odtUrl = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_18324-20194.exe"  # Office Deployment Tool URL
 $odtPath = "C:\Temp\OfficeDeploymentTool.exe"  # Path to save Office Deployment Tool
 $odtExtractPath = "C:\Temp\OfficeDeploymentTool"  # Path to extract the tool
 $configFile = "C:\Temp\configuration.xml"  # Path to save the configuration file
@@ -150,7 +150,7 @@ Start-Process -FilePath "$odtExtractPath\setup.exe" -ArgumentList "/configure `"
 Write-Host "Office 365 installation completed!"
 
 # Download and install Adobe Acrobat Reader if not already present
-$readerUrl = "https://get.adobe.com/reader/download/?installer=Reader_DC_zh_CN&standalone=1"  # Adobe Reader installer URL
+$readerUrl = "https://ardownload2.adobe.com/pub/adobe/acrobat/win/AcrobatDC/2300320269/AcroRdrDCx642300320269_en_US.exe"  # Adobe Reader installer URL
 $installerPath = "C:\Temp\AcrobatReaderInstaller.exe"  # Path to save installer
 
 # Download Adobe Acrobat Reader installer if not already present
