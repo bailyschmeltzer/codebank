@@ -1,135 +1,133 @@
 # Check if running as an administrator
 $isAdmin = [System.Security.Principal.WindowsPrincipal]::new([System.Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')
 
+# If not running as an administrator, re-launch the script with elevated privileges
 if (-not $isAdmin) {
     $params = @{
         FilePath     = 'powershell' # or 'pwsh' for PowerShell Core
-        Verb         = 'RunAs'
+        Verb         = 'RunAs'  # Run as Administrator
         ArgumentList = @(
             '-NoExit',
             '-ExecutionPolicy Bypass',
-            '-File "{0}"' -f $PSCommandPath
+            '-File "{0}"' -f $PSCommandPath  # Pass the current script to the elevated process
         )
     }
     Start-Process @params
-    return
+    return  # Exit the script after relaunching with elevated privileges
 }
 
-
 # Set the Administrator password and disable the account
-net user Administrator PASSWORD
-net user Administrator /active:no
-WMIC USERACCOUNT WHERE Name='Administrator' SET PasswordExpires=FALSE
+net user Administrator PASSWORD  # Set Administrator password
+net user Administrator /active:no  # Disable the Administrator account
+WMIC USERACCOUNT WHERE Name='Administrator' SET PasswordExpires=FALSE  # Prevent Administrator password from expiring
 
-# Add a new user
-net user USERNAME PASSWORD /add
-WMIC USERACCOUNT WHERE Name='USERNAME' SET PasswordExpires=FALSE
+# Add a new user with the specified username and password
+net user USERNAME PASSWORD /add  # Create a new user
+WMIC USERACCOUNT WHERE Name='USERNAME' SET PasswordExpires=FALSE  # Prevent password expiration for the new user
 
 # Add the new user to the Administrators group
-net localgroup administrators USERNAME /add
+net localgroup administrators USERNAME /add  # Add new user to the Administrators group
 
-# Enable RDP by modifying registry keys
-reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /T REG_DWORD /d 0 /f
-reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP" /v UserAuthentication /t REG_DWORD /d 0 /f
+# Enable Remote Desktop Protocol (RDP) by modifying registry settings
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /T REG_DWORD /d 0 /f  # Enable RDP
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f  # Disable UAC for RDP
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP" /v UserAuthentication /t REG_DWORD /d 0 /f  # Disable NLA (Network Level Authentication) for RDP
 
-# Disable Windows Firewall (optional)
-netsh AdvFirewall set allprofiles state off
+# Disable Windows Firewall (optional, use cautiously)
+netsh AdvFirewall set allprofiles state off  # Turn off the firewall
 
 # Add "Domain Users" to Administrators group
-net localgroup Administrators "Domain Users" /add
+net localgroup Administrators "Domain Users" /add  # Add Domain Users to Administrators group
 
-# Set timeout settings to never
-powercfg /change standby-timeout-ac 0
-powercfg /change standby-timeout-dc 0
-powercfg /change monitor-timeout-ac 0
-powercfg /change monitor-timeout-dc 0
-powercfg /change hibernate-timeout-ac 0
-powercfg /change hibernate-timeout-dc 0
+# Set power settings to never timeout for standby, monitor, and hibernate
+powercfg /change standby-timeout-ac 0  # Set standby timeout to never on AC power
+powercfg /change standby-timeout-dc 0  # Set standby timeout to never on DC power
+powercfg /change monitor-timeout-ac 0  # Set monitor timeout to never on AC power
+powercfg /change monitor-timeout-dc 0  # Set monitor timeout to never on DC power
+powercfg /change hibernate-timeout-ac 0  # Set hibernate timeout to never on AC power
+powercfg /change hibernate-timeout-dc 0  # Set hibernate timeout to never on DC power
 
-# Download Chrome if not already present 
-$downloadUrl = "https://dl.google.com/chrome/install/standalone/GoogleChromeStandaloneEnterprise64.msi" 
-$localPath = "C:\Temp\GoogleChromeStandaloneEnterprise64.msi" 
+# Download and install Google Chrome if it's not already present
+$downloadUrl = "https://dl.google.com/chrome/install/standalone/GoogleChromeStandaloneEnterprise64.msi"  # Chrome installer URL
+$localPath = "C:\Temp\GoogleChromeStandaloneEnterprise64.msi"  # Path to save installer
 
 # Ensure the Temp directory exists
 if (!(Test-Path "C:\Temp")) {
-    New-Item -Path "C:\" -Name "Temp" -ItemType Directory
+    New-Item -Path "C:\" -Name "Temp" -ItemType Directory  # Create Temp directory if it doesn't exist
 }
 
-# Check if .msi already exists in file path, download if not
+# Download Chrome if it's not already present
 if (!(Test-Path $localPath)) {
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing  # Download the installer
 }
 
 # Install Chrome silently
-Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait
+Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait  # Install Chrome with no user interaction
 
-# URL of the Dell Command | Update installer
-$downloadUrl = "https://downloads.dell.com/FOLDER05079098M/1/Dell-Command-Update_Application_4.0.0.139_A00.exe"
-$localPath = "C:\Temp\DellCommandUpdate.exe"
+# Download and install Dell Command Update if it's not already present
+$downloadUrl = "https://downloads.dell.com/FOLDER05079098M/1/Dell-Command-Update_Application_4.0.0.139_A00.exe"  # Dell Command Update installer URL
+$localPath = "C:\Temp\DellCommandUpdate.exe"  # Path to save installer
 
 # Ensure the Temp directory exists
 if (!(Test-Path "C:\Temp")) {
-    New-Item -Path "C:\" -Name "Temp" -ItemType Directory
+    New-Item -Path "C:\" -Name "Temp" -ItemType Directory  # Create Temp directory if it doesn't exist
 }
 
-# Check if the installer already exists in the file path, download if not
+# Download the Dell Command Update installer if not present
 if (!(Test-Path $localPath)) {
     Write-Host "Downloading Dell Command Update installer..."
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing  # Download the installer
     Write-Host "Download complete!"
 } else {
     Write-Host "Installer already exists."
 }
 
-# Optionally, run the installer silently
+# Run the Dell Command Update installer silently
 Write-Host "Running the installer..."
-Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait
+Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait  # Install silently
 Write-Host "Dell Command Update installed successfully!"
 
-# Download the Teams bootstrapper if not already present 
-$downloadUrl = "https://download.microsoft.com/download/7/0/5/70585c-c22b-4bcb-b69d-14e2d4c038a2/Teams_windows_x64.exe" 
-$localPath = "C:\Temp\TeamsBootstrapper.exe" 
+# Download Microsoft Teams if not already present
+$downloadUrl = "https://download.microsoft.com/download/7/0/5/70585c-c22b-4bcb-b69d-14e2d4c038a2/Teams_windows_x64.exe"  # Teams installer URL
+$localPath = "C:\Temp\TeamsBootstrapper.exe"  # Path to save installer
 
-# Checks if .exe already exists in file path, downloads if not
+# Check if Teams installer exists, download if not
 if(!(Test-Path $localPath)) {
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing  # Download Teams installer
 }
 
+# Remove any existing Teams installations
+teamsbootstrapper -x  # Uninstall existing Teams installations
+teamsbootstrapper -u  # Uninstall existing Teams installations
 
-# Remove existing copies of Teams
-teamsbootstrapper -x
-teamsbootstrapper -u 
+# Install Teams using the bootstrapper
+Start-Process -FilePath $localPath -ArgumentList "-p" -Wait  # Install Teams silently
 
-# Install Teams using the bootstrapper 
-Start-Process -FilePath $localPath -ArgumentList "-p" -Wait
+# Download Office Deployment Tool if not already present
+$odtUrl = "https://download.microsoft.com/download/1/7/6/176F2D4E-2D61-4365-8B2D-67D99B1A5788/OfficeDeploymentTool.exe"  # Office Deployment Tool URL
+$odtPath = "C:\Temp\OfficeDeploymentTool.exe"  # Path to save Office Deployment Tool
+$odtExtractPath = "C:\Temp\OfficeDeploymentTool"  # Path to extract the tool
+$configFile = "C:\Temp\configuration.xml"  # Path to save the configuration file
 
-
-# Step 1: Define paths and URLs
-$odtUrl = "https://download.microsoft.com/download/1/7/6/176F2D4E-2D61-4365-8B2D-67D99B1A5788/OfficeDeploymentTool.exe"
-$odtPath = "C:\Temp\OfficeDeploymentTool.exe"
-$odtExtractPath = "C:\Temp\OfficeDeploymentTool"
-$configFile = "C:\Temp\configuration.xml"
-
-# Step 2: Download the Office Deployment Tool
+# Download the Office Deployment Tool if not already present
 if (!(Test-Path $odtPath)) {
     Write-Host "Downloading the Office Deployment Tool..."
-    Invoke-WebRequest -Uri $odtUrl -OutFile $odtPath
+    Invoke-WebRequest -Uri $odtUrl -OutFile $odtPath  # Download Office Deployment Tool
     Write-Host "Office Deployment Tool downloaded successfully."
 } else {
     Write-Host "Office Deployment Tool already downloaded."
 }
 
-# Step 3: Extract the Office Deployment Tool
+# Extract the Office Deployment Tool if not already extracted
 if (!(Test-Path $odtExtractPath)) {
     Write-Host "Extracting the Office Deployment Tool..."
-    Start-Process -FilePath $odtPath -ArgumentList "/quiet /extract:$odtExtractPath" -Wait
+    Start-Process -FilePath $odtPath -ArgumentList "/quiet /extract:$odtExtractPath" -Wait  # Extract tool
     Write-Host "Office Deployment Tool extracted successfully."
 } else {
     Write-Host "Office Deployment Tool already extracted."
 }
 
-# Step 4: Create the Configuration XML File for Office 365 Installation
+# Create configuration XML for Office 365 installation
 $configXmlContent = @"
 <Configuration>
   <Add SourcePath="https://officecdn.microsoft.com/pr/office2021/ProPlus2021Retail" OfficeClientEdition="64" Channel="MonthlyEnterprise">
@@ -140,65 +138,59 @@ $configXmlContent = @"
   <Display Level="Full" AcceptEULA="TRUE" />
   <Property Name="ForceAppShutdown" Value="TRUE" />
 </Configuration>
-"@
+"@  # Office configuration settings
 
-# Save the configuration file
-$configXmlContent | Out-File -FilePath $configFile -Force
+# Save the configuration XML file
+$configXmlContent | Out-File -FilePath $configFile -Force  # Save XML to file
 Write-Host "Configuration file created."
 
-# Step 5: Install Office 365 using the Office Deployment Tool
+# Install Office 365 using the Office Deployment Tool and configuration file
 Write-Host "Starting Office 365 installation..."
-Start-Process -FilePath "$odtExtractPath\setup.exe" -ArgumentList "/configure `"$configFile`"" -Wait
-
+Start-Process -FilePath "$odtExtractPath\setup.exe" -ArgumentList "/configure `"$configFile`"" -Wait  # Run Office setup
 Write-Host "Office 365 installation completed!"
 
-# Step 1: Define paths and URLs for Adobe Reader
-$readerUrl = "https://get.adobe.com/reader/download/?installer=Reader_DC_zh_CN&standalone=1" # You may need to update the URL for your specific version or language.
-$installerPath = "C:\Temp\AcrobatReaderInstaller.exe"
+# Download and install Adobe Acrobat Reader if not already present
+$readerUrl = "https://get.adobe.com/reader/download/?installer=Reader_DC_zh_CN&standalone=1"  # Adobe Reader installer URL
+$installerPath = "C:\Temp\AcrobatReaderInstaller.exe"  # Path to save installer
 
-# Step 2: Download the Adobe Acrobat Reader installer
+# Download Adobe Acrobat Reader installer if not already present
 if (!(Test-Path $installerPath)) {
     Write-Host "Downloading Adobe Acrobat Reader..."
-    Invoke-WebRequest -Uri $readerUrl -OutFile $installerPath
+    Invoke-WebRequest -Uri $readerUrl -OutFile $installerPath  # Download Adobe Reader installer
     Write-Host "Adobe Acrobat Reader downloaded successfully."
 } else {
     Write-Host "Adobe Acrobat Reader installer already downloaded."
 }
 
-# Step 3: Install Adobe Acrobat Reader silently
+# Install Adobe Acrobat Reader silently
 Write-Host "Starting Adobe Acrobat Reader installation..."
-Start-Process -FilePath $installerPath -ArgumentList "/sAll /msi EULA_ACCEPT=YES" -Wait
+Start-Process -FilePath $installerPath -ArgumentList "/sAll /msi EULA_ACCEPT=YES" -Wait  # Install Reader silently
 Write-Host "Adobe Acrobat Reader installation completed!"
 
-
-
-# Set Chrome as the default browser via registry 
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice" -Name "ProgId" -Value "ChromeHTML"
-Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.htm\UserChoice" -Name "ProgId" -Value "ChromeHTML"
-
-
+# Set Chrome as the default browser by modifying the registry
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice" -Name "ProgId" -Value "ChromeHTML"  # Set .html to open with Chrome
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.htm\UserChoice" -Name "ProgId" -Value "ChromeHTML"  # Set .htm to open with Chrome
 
 # Define registry settings for Google Chrome
 $settings = @(
     [PSCustomObject]@{ Path = "SOFTWARE\Policies\Google\Chrome"; Value = 4; Name = "RestoreOnStartup" },
-    [PSCustomObject]@{ Path = "SOFTWARE\Policies\Google\Chrome\RestoreOnStartupURLs"; Value = "https://medicusit.com"; Name = "URL1" }
+    [PSCustomObject]@{ Path = "SOFTWARE\Policies\Google\Chrome\RestoreOnStartupURLs"; Value = "https://google.com"; Name = "URL1" }
 )
 
-# Process registry settings
+# Process registry settings for Chrome configuration
 foreach ($setting in $settings) {
     try {
         $registry = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($setting.Path, $true) ?? 
                     [Microsoft.Win32.Registry]::LocalMachine.CreateSubKey($setting.Path, $true)
-        $registry.SetValue($setting.Name, $setting.Value)
+        $registry.SetValue($setting.Name, $setting.Value)  # Apply registry changes
     } catch {
-        Write-Error "Failed to set registry key: $($_.Exception.Message)"
+        Write-Error "Failed to set registry key: $($_.Exception.Message)"  # Handle errors in setting registry keys
     } finally {
-        $registry.Dispose()
+        $registry.Dispose()  # Clean up registry objects
     }
 }
 
-
-# Remove specified Appx packages
+# Remove specified Appx packages (pre-installed apps)
 $packagesToRemove = @(
     '*3dbuilder*', '*windowsalarms*', '*windowscommunicationsapps*',
     '*windowscamera*', '*officehub*', '*skypeapp*', '*getstarted*',
@@ -208,14 +200,14 @@ $packagesToRemove = @(
     '*onenote*', '*bing*', '*mixedreality*'
 )
 
+# Remove the specified Appx packages
 foreach ($package in $packagesToRemove) {
-	Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like $package} | Remove-AppxProvisionedPackage -Online
-    Get-AppxPackage -AllUsers $package | Remove-AppxPackage -AllUsers
+    Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like $package} | Remove-AppxProvisionedPackage -Online  # Remove provisioned packages
+    Get-AppxPackage -AllUsers $package | Remove-AppxPackage -AllUsers  # Remove installed packages
 }
 
+# Set the system timezone to Eastern Standard Time (EST)
+Set-TimeZone -Id "EST"  # Set system timezone to EST
 
-# Set timezone to EST
-Set-TimeZone -Id "EST"
-
-# Open Windows Update settings
-Start-Process "C:\Windows\System32\control.exe" -ArgumentList "/name Microsoft.WindowsUpdate"
+# Open Windows Update settings for user
+Start-Process "C:\Windows\System32\control.exe" -ArgumentList "/name Microsoft.WindowsUpdate"  # Open Windows Update settings
