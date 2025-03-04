@@ -16,14 +16,22 @@ net localgroup Administrators "Domain Users" /add
 dism /online /Import-DefaultAppAssociations:"c:\BaseConfig\AppAssociations.xml"
 
 
+# Download the Teams bootstrapper if not already present 
+$downloadUrl = "https://download.microsoft.com/download/7/0/5/70585c-c22b-4bcb-b69d-14e2d4c038a2/Teams_windows_x64.exe" 
+$localPath = "C:\Temp\TeamsBootstrapper.exe" 
 
-MOVE /-Y C:\BaseConfig\teamsbootstrapper.exe C:\Windows\System32
+# Checks if .exe already exists in file path, downloads if not
+if(!(Test-Path $localPath)) {
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+}
 
 
+# Remove existing copies of Teams
 teamsbootstrapper -x
 teamsbootstrapper -u 
-teamsbootstrapper.exe -p 
 
+# Install Teams using the bootstrapper 
+Start-Process -FilePath $localPath -ArgumentList "-p" -Wait
 
 
 
