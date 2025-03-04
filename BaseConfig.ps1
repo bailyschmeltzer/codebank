@@ -180,7 +180,7 @@ $settings = @(
 # Process registry settings for Chrome configuration
 foreach ($setting in $settings) {
     try {
-        $registry = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($setting.Path, $true) ?? 
+        $registry = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($setting.Path, $true) 
                     [Microsoft.Win32.Registry]::LocalMachine.CreateSubKey($setting.Path, $true)
         $registry.SetValue($setting.Name, $setting.Value)  # Apply registry changes
     } catch {
