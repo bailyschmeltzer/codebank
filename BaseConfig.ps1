@@ -22,6 +22,67 @@ powercfg /change monitor-timeout-dc 0
 powercfg /change hibernate-timeout-ac 0
 powercfg /change hibernate-timeout-dc 0
 
+# Download Chrome if not already present 
+$downloadUrl = "https://dl.google.com/chrome/install/standalone/GoogleChromeStandaloneEnterprise64.msi" 
+$localPath = "C:\Temp\GoogleChromeStandaloneEnterprise64.msi" 
+
+# Ensure the Temp directory exists
+if (!(Test-Path "C:\Temp")) {
+    New-Item -Path "C:\" -Name "Temp" -ItemType Directory
+}
+
+# Check if .msi already exists in file path, download if not
+if (!(Test-Path $localPath)) {
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+}
+
+# Install Chrome silently
+Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait
+
+# URL of the Dell Command | Update installer
+$downloadUrl = "https://downloads.dell.com/FOLDER05079098M/1/Dell-Command-Update_Application_4.0.0.139_A00.exe"
+$localPath = "C:\Temp\DellCommandUpdate.exe"
+
+# Ensure the Temp directory exists
+if (!(Test-Path "C:\Temp")) {
+    New-Item -Path "C:\" -Name "Temp" -ItemType Directory
+}
+
+# Check if the installer already exists in the file path, download if not
+if (!(Test-Path $localPath)) {
+    Write-Host "Downloading Dell Command Update installer..."
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+    Write-Host "Download complete!"
+} else {
+    Write-Host "Installer already exists."
+}
+
+# Optionally, run the installer silently
+Write-Host "Running the installer..."
+Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait
+Write-Host "Dell Command Update installed successfully!"
+
+# Download the Teams bootstrapper if not already present 
+$downloadUrl = "https://download.microsoft.com/download/7/0/5/70585c-c22b-4bcb-b69d-14e2d4c038a2/Teams_windows_x64.exe" 
+$localPath = "C:\Temp\TeamsBootstrapper.exe" 
+
+# Checks if .exe already exists in file path, downloads if not
+if(!(Test-Path $localPath)) {
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $localPath -UseBasicParsing
+}
+
+
+# Remove existing copies of Teams
+teamsbootstrapper -x
+teamsbootstrapper -u 
+
+# Install Teams using the bootstrapper 
+Start-Process -FilePath $localPath -ArgumentList "-p" -Wait
+
+
+
+
+
 
 # Define registry settings for Google Chrome
 $settings = @(
