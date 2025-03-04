@@ -48,7 +48,7 @@ powercfg /change hibernate-timeout-ac 0  # Set hibernate timeout to never on AC 
 powercfg /change hibernate-timeout-dc 0  # Set hibernate timeout to never on DC power
 
 # Download and install Google Chrome if it's not already present
-$downloadUrl = "https://dl.google.com/chrome/install/standalone/GoogleChromeStandaloneEnterprise64.msi"  # Chrome installer URL
+$downloadUrl = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"  # Chrome installer URL
 $localPath = "C:\Temp\GoogleChromeStandaloneEnterprise64.msi"  # Path to save installer
 
 # Ensure the Temp directory exists
@@ -65,7 +65,7 @@ if (!(Test-Path $localPath)) {
 Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait  # Install Chrome with no user interaction
 
 # Download and install Dell Command Update if it's not already present
-$downloadUrl = "https://downloads.dell.com/FOLDER05079098M/1/Dell-Command-Update_Application_4.0.0.139_A00.exe"  # Dell Command Update installer URL
+$downloadUrl = "https://downloads.dell.com/FOLDER11914075M/1/Dell-Command-Update-Application_6VFWW_WIN_5.4.0_A00.EXE"  # Dell Command Update installer URL
 $localPath = "C:\Temp\DellCommandUpdate.exe"  # Path to save installer
 
 # Ensure the Temp directory exists
@@ -88,7 +88,7 @@ Start-Process -FilePath $localPath -ArgumentList "/quiet /norestart" -Wait  # In
 Write-Host "Dell Command Update installed successfully!"
 
 # Download Microsoft Teams if not already present
-$downloadUrl = "https://download.microsoft.com/download/7/0/5/70585c-c22b-4bcb-b69d-14e2d4c038a2/Teams_windows_x64.exe"  # Teams installer URL
+$downloadUrl = "https://aka.ms/teamsinstaller"  # Teams installer URL
 $localPath = "C:\Temp\TeamsBootstrapper.exe"  # Path to save installer
 
 # Check if Teams installer exists, download if not
@@ -104,7 +104,7 @@ teamsbootstrapper -u  # Uninstall existing Teams installations
 Start-Process -FilePath $localPath -ArgumentList "-p" -Wait  # Install Teams silently
 
 # Download Office Deployment Tool if not already present
-$odtUrl = "https://download.microsoft.com/download/1/7/6/176F2D4E-2D61-4365-8B2D-67D99B1A5788/OfficeDeploymentTool.exe"  # Office Deployment Tool URL
+$odtUrl = "https://go.microsoft.com/fwlink/p/?linkid=2112906"  # Office Deployment Tool URL
 $odtPath = "C:\Temp\OfficeDeploymentTool.exe"  # Path to save Office Deployment Tool
 $odtExtractPath = "C:\Temp\OfficeDeploymentTool"  # Path to extract the tool
 $configFile = "C:\Temp\configuration.xml"  # Path to save the configuration file
