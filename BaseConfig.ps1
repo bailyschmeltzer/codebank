@@ -106,6 +106,9 @@ Start-Process -FilePath $localPath -ArgumentList "-p" -Wait
 
 
 
+# Set Chrome as the default browser via registry 
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice" -Name "ProgId" -Value "ChromeHTML"
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.htm\UserChoice" -Name "ProgId" -Value "ChromeHTML"
 
 
 
