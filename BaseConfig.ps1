@@ -15,6 +15,31 @@ if (-not $isAdmin) {
     return
 }
 
+
+# Set the Administrator password and disable the account
+net user Administrator PASSWORD
+net user Administrator /active:no
+WMIC USERACCOUNT WHERE Name='Administrator' SET PasswordExpires=FALSE
+
+# Add a new user
+net user USERNAME PASSWORD /add
+WMIC USERACCOUNT WHERE Name='USERNAME' SET PasswordExpires=FALSE
+
+# Add the new user to the Administrators group
+net localgroup administrators USERNAME /add
+
+# Enable RDP by modifying registry keys
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /T REG_DWORD /d 0 /f
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP" /v UserAuthentication /t REG_DWORD /d 0 /f
+
+# Disable Windows Firewall (optional)
+netsh AdvFirewall set allprofiles state off
+
+# Add "Domain Users" to Administrators group
+net localgroup Administrators "Domain Users" /add
+
+# Set timeout settings to never
 powercfg /change standby-timeout-ac 0
 powercfg /change standby-timeout-dc 0
 powercfg /change monitor-timeout-ac 0
@@ -119,6 +144,8 @@ foreach ($package in $packagesToRemove) {
     Get-AppxPackage -AllUsers $package | Remove-AppxPackage -AllUsers
 }
 
+
+# Set timezone to EST
 Set-TimeZone -Id "EST"
 
 # Open Windows Update settings
