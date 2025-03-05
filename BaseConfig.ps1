@@ -16,6 +16,8 @@ if (-not $isAdmin) {
     return  # Exit the script after relaunching with elevated privileges
 }
 
+
+<#
 # Set the Administrator password and disable the account
 net user Administrator PASSWORD  # Set Administrator password
 net user Administrator /active:no  # Disable the Administrator account
@@ -28,6 +30,12 @@ WMIC USERACCOUNT WHERE Name='USERNAME' SET PasswordExpires=FALSE  # Prevent pass
 # Add the new user to the Administrators group
 net localgroup administrators USERNAME /add  # Add new user to the Administrators group
 
+# Add "Domain Users" to Administrators group
+net localgroup Administrators "Domain Users" /add  # Add Domain Users to Administrators group
+
+#>
+
+
 # Enable Remote Desktop Protocol (RDP) by modifying registry settings
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /T REG_DWORD /d 0 /f  # Enable RDP
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f  # Disable UAC for RDP
@@ -35,9 +43,6 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\Win
 
 # Disable Windows Firewall (optional, use cautiously)
 netsh AdvFirewall set allprofiles state off  # Turn off the firewall
-
-# Add "Domain Users" to Administrators group
-net localgroup Administrators "Domain Users" /add  # Add Domain Users to Administrators group
 
 # Set power settings to never timeout for standby, monitor, and hibernate
 powercfg /change standby-timeout-ac 0  # Set standby timeout to never on AC power
