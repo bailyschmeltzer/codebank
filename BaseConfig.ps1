@@ -212,7 +212,7 @@ foreach ($package in $packagesToRemove) {
 }
 
 # Set the system timezone to Eastern Standard Time (EST)
-Set-TimeZone -Id "EST"  # Set system timezone to EST
+Set-TimeZone -Id "Eastern Standard Time"  # Set system timezone to EST
 
 # Open Windows Update settings for user
 Start-Process "C:\Windows\System32\control.exe" -ArgumentList "/name Microsoft.WindowsUpdate"  # Open Windows Update settings
