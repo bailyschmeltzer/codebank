@@ -1,3 +1,4 @@
+# Purpose: Remove users from groups within a target OU.
 # Import the ActiveDirectory module if not already loaded
 Import-Module ActiveDirectory
 
@@ -14,6 +15,7 @@ ForEach ($User in $Users) {
 
     # Remove the user from each group (except "Domain Users")
     ForEach ($Group in $Groups) {
+        # Keep default primary membership intact.
         if ($Group -notlike "*Domain Users*") {
             Remove-ADGroupMember -Identity $Group -Members $User -Confirm:$false
         }

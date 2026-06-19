@@ -1,3 +1,4 @@
+# Purpose: Build and run a VPN adapter setup script.
 ########################################################################
 #Creates PowerShell file to install a VPN adapter using Windows' adapter
 #
@@ -16,6 +17,7 @@ $VPNdns = Read-Host -Prompt "Enter the DNS suffix"
 $VPNSplitTunnel = Read-host "Enable Split Tunneling Yes/No"
 $VpnPresent = Read-Host "Please Enter random variable"
 $Date = Get-Date -Format "MM.dd.yyyy"
+# Seed the generated script with header metadata.
 Add-Content -path "$outputPath\vpn.ps1" -Value "########################################### `
 #This is a new VPN for $VPNName `
 #Created $Date
@@ -24,6 +26,7 @@ Add-Content -path "$outputPath\vpn.ps1" -Value "################################
 "
 Add-Content -Path "$outputPath\vpn.ps1" -value "$VPNPresent = (Get-VpnConnection).Name"
 $VPNSplitTunnel
+# Build connection command with split tunneling if requested.
 If ($VPNSplitTunnel -ilike "yes"){
  Add-Content -Path "$outputpath\vpn.ps1" -value "If ($VPNPresent -notcontains '$VPNName'){
 

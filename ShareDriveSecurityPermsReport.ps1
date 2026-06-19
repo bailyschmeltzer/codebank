@@ -1,3 +1,4 @@
+# Purpose: Export NTFS permissions for a shared folder.
 # Define the path to the folder whose permissions you want to view
 $folderPath = "E:\Share Drive\IT"
  
@@ -12,6 +13,7 @@ $folders = Get-ChildItem -Path $folderPath -Directory
  
 # Loop through each folder and collect its permissions
 foreach ($folder in $folders) {
+    # Read NTFS ACL entries and flatten them for export.
     $acl = Get-Acl -Path $folder.FullName
     $permissions = $acl.Access | ForEach-Object {
         [PSCustomObject]@{

@@ -1,3 +1,4 @@
+# Purpose: Apply baseline configuration tasks with admin elevation.
 # Check if running as an administrator
 $isAdmin = [System.Security.Principal.WindowsPrincipal]::new([System.Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrators')
 
@@ -37,6 +38,7 @@ net localgroup Administrators "Domain Users" /add  # Add Domain Users to Adminis
 
 
 # Enable Remote Desktop Protocol (RDP) by modifying registry settings
+# These registry changes enable RDP access and relax interactive security prompts.
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /T REG_DWORD /d 0 /f  # Enable RDP
 reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f  # Disable UAC for RDP
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP" /v UserAuthentication /t REG_DWORD /d 0 /f  # Disable NLA (Network Level Authentication) for RDP
@@ -53,6 +55,7 @@ powercfg /change hibernate-timeout-ac 0  # Set hibernate timeout to never on AC 
 powercfg /change hibernate-timeout-dc 0  # Set hibernate timeout to never on DC power
 
 # Download and install Google Chrome if it's not already present
+# Installer block follows a common pattern: download if missing, then run silent install.
 $downloadUrl = "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"  # Chrome installer URL
 $localPath = "C:\Temp\GoogleChromeStandaloneEnterprise64.msi"  # Path to save installer
 
@@ -206,6 +209,7 @@ $packagesToRemove = @(
 )
 
 # Remove the specified Appx packages
+# Remove both provisioned (new profiles) and installed (existing profiles) app packages.
 foreach ($package in $packagesToRemove) {
     Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like $package} | Remove-AppxProvisionedPackage -Online  # Remove provisioned packages
     Get-AppxPackage -AllUsers $package | Remove-AppxPackage -AllUsers  # Remove installed packages

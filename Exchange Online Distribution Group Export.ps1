@@ -1,4 +1,5 @@
-﻿# === Module Check ===
+﻿# Purpose: Export Exchange Online distribution group membership details.
+# === Module Check ===
 if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
     Write-Host "Installing ImportExcel module..."
     Install-Module -Name ImportExcel -Scope CurrentUser -Force
@@ -16,6 +17,7 @@ Write-Host "Connecting to Exchange Online using Windows sign-in..."
 Connect-ExchangeOnline
 
 # === Define Groups ===
+# Pull all group names first so each one becomes a separate worksheet.
 $Groups = Get-DistributionGroup | Select-Object -ExpandProperty Name
 
 # === Prepare Export Path ===
@@ -49,6 +51,7 @@ foreach ($Group in $Groups) {
     }
 
     # --- If we didn't get enough members, use Get-Recipient fallback ---
+    # Fallback helps with dynamic membership visibility edge cases.
     if (-not $Members -or $Members.Count -lt 1) {
         Write-Host "Using Get-Recipient fallback for group: $Group"
         $Members = Get-Recipient -Filter "MemberOfGroup -eq '$Group'" -ResultSize Unlimited
@@ -81,6 +84,7 @@ foreach ($Group in $Groups) {
     }
 
     # --- Export results to Excel ---
+    # Each distribution group is exported to its own worksheet tab.
     if ($GroupResults.Count -gt 0) {
         Write-Host "Exporting $($GroupResults.Count) members from '$Group'..."
         $GroupResults | Export-Excel -Path $OutputPath -WorksheetName $Group -AutoSize -FreezeTopRow -BoldTopRow -Append

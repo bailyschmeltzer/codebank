@@ -1,7 +1,9 @@
+# Purpose: List enabled computers and last logon details for an OU.
 # Specify the path to your target OU
 $OUpath = 'OU=Accounts Computer,DC=delaware,DC=acoust-a-fiber,DC=com'
 
 # Get active users from the specified OU along with their last logon time
+# Convert AD file time values to readable DateTime values.
 $users = Get-ADComputer -Filter {Enabled -eq $true} -SearchBase $OUpath -Properties LastLogon |
          Select-Object Name, @{Name='LastLogon';Expression={[DateTime]::FromFileTime($_.LastLogon)}}
 

@@ -1,3 +1,4 @@
+# Purpose: Report folder last-access times to CSV.
 ## This script pulls a report for the last time a folder was accessed.  Written by STR ##
 
 # Set Folder location and output location
@@ -8,6 +9,7 @@ $reportPath = "C:\path\to\report.csv" # Change this to the path where you want t
 
 
 # Get the last access times of all subfolders
+# Build lightweight objects so the CSV stays clean and readable.
 $folderATimes = Get-ChildItem $folderPath -Directory | ForEach-Object {
     [PSCustomObject]@{
         Name = $_.Name
